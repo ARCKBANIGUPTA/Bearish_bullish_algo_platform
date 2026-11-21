@@ -1,0 +1,18 @@
+# Runtime
+fastapi==0.163.0
+uvicorn[standard]==0.54.0
+growwapi==1.5.0
+pyotp==2.11.2
+pandas==2.3.3
+numpy==2.2.6
+requests==2.34.2
+pydantic==2.14.3
+pydantic-settings==2.16.3
+python-dotenv==1.2.4
+tzdata==2026.6
+websockets==17.4
+
+# Dev / test
+pytest==9.2.0
+pytest-asyncio==1.5.0
+httpx==0.28.1
