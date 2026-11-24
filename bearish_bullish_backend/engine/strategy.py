@@ -48,7 +48,12 @@ def candles_to_frame(rows: Iterable[Any]) -> pd.DataFrame:
     """Normalise raw Groww candle rows ([ts, o, h, l, c, vol, oi?]) into a clean DataFrame.
 
     Output columns: date (datetime.date), open, high, low, close, volume.
-    Rows with missing/invalid prices are dropped; duplicates keep the last row.
+    Rows with missing/invalid high, low or close are dropped; duplicates keep the last row.
+
+    Groww's 1-day candles usually come back with open = None (verified Nov 2026), so a
+    missing open is filled with the previous session's close, clamped into that day's
+    [low, high] range (or the day's close for the first row). The breakout strategy only
+    uses high/low/close; the filled open only affects how the chart draws the candle body.
     """
     records = []
     for row in rows or []:
@@ -64,9 +69,14 @@ def candles_to_frame(rows: Iterable[Any]) -> pd.DataFrame:
         return df
     for col in ("open", "high", "low", "close", "volume"):
         df[col] = pd.to_numeric(df[col], errors="coerce")
-    df = df.dropna(subset=["open", "high", "low", "close"])
-    df = df[(df["high"] > 0) & (df["low"] > 0)]
+    df = df.dropna(subset=["high", "low", "close"])
+    df = df[(df["high"] > 0) & (df["low"] > 0) & (df["close"] > 0)]
     df = df.drop_duplicates(subset="date", keep="last").sort_values("date").reset_index(drop=True)
+
+    missing_open = df["open"].isna() | (df["open"] <= 0)
+    if missing_open.any():
+        filled = df["close"].shift(1).fillna(df["close"]).clip(lower=df["low"], upper=df["high"])
+        df.loc[missing_open, "open"] = filled[missing_open]
     return df
 
 

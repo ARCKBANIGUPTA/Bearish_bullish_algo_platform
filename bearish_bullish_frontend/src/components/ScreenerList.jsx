@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { formatPct, formatPrice } from '../format'
 import { useScreenerStore } from '../store'
-import type { SignalResult } from '../types'
 
-type Tab = 'bullish' | 'bearish'
+/** @typedef {'bullish' | 'bearish'} Tab */
 
-const TAB_STYLE: Record<Tab, { label: string; active: string; badge: string; accent: string }> = {
+const TABS = /** @type {const} */ (['bullish', 'bearish'])
+
+const TAB_STYLE = {
   bullish: {
     label: 'Bullish (CE Targets)',
     active: 'border-emerald-400 text-emerald-300',
@@ -20,12 +21,15 @@ const TAB_STYLE: Record<Tab, { label: string; active: string; badge: string; acc
   },
 }
 
-function Row({ item, tab, selected, onSelect }: {
-  item: SignalResult
-  tab: Tab
-  selected: boolean
-  onSelect: (symbol: string) => void
-}) {
+/**
+ * @param {{
+ *   item: import('../types').SignalResult,
+ *   tab: Tab,
+ *   selected: boolean,
+ *   onSelect: (symbol: string) => void,
+ * }} props
+ */
+function Row({ item, tab, selected, onSelect }) {
   const level = tab === 'bullish' ? item.high_5d : item.low_5d
   return (
     <li>
@@ -59,7 +63,7 @@ export function ScreenerList() {
   const lastScanAt = useScreenerStore((s) => s.lastScanAt)
   const selected = useScreenerStore((s) => s.selectedSymbol)
   const selectSymbol = useScreenerStore((s) => s.selectSymbol)
-  const [tab, setTab] = useState<Tab>('bullish')
+  const [tab, setTab] = useState(/** @type {Tab} */ ('bullish'))
   const [query, setQuery] = useState('')
 
   const items = tab === 'bullish' ? bullish : bearish
@@ -69,7 +73,7 @@ export function ScreenerList() {
   return (
     <aside className="flex w-full shrink-0 flex-col border-r border-slate-800 bg-slate-900 md:w-80">
       <div className="grid grid-cols-2 border-b border-slate-800" role="tablist">
-        {(['bullish', 'bearish'] as const).map((t) => {
+        {TABS.map((t) => {
           const count = t === 'bullish' ? bullish.length : bearish.length
           const active = tab === t
           return (

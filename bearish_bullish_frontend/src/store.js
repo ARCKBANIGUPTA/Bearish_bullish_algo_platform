@@ -1,44 +1,34 @@
 import { create } from 'zustand'
-import type { DataSource, ScreenerSnapshot, SignalResult, WsStatus } from './types'
 
-interface ScreenerState {
-  wsStatus: WsStatus
-  bullish: SignalResult[]
-  bearish: SignalResult[]
-  neutralCount: number
-  failedCount: number
-  universeSize: number
-  lookbackDays: number
-  sessionDate: string | null
-  lastScanAt: string | null
-  nextScanAt: string | null
-  dataSource: DataSource | null
-  scanError: string | null
-  selectedSymbol: string | null
+/** @typedef {import('./types').ScreenerSnapshot} ScreenerSnapshot */
 
-  setWsStatus: (status: WsStatus) => void
-  setSnapshot: (snapshot: ScreenerSnapshot) => void
-  setScanError: (message: string | null) => void
-  selectSymbol: (symbol: string) => void
-}
-
-export const useScreenerStore = create<ScreenerState>()((set, get) => ({
+export const useScreenerStore = create((set, get) => ({
+  /** @type {import('./types').WsStatus} */
   wsStatus: 'connecting',
+  /** @type {import('./types').SignalResult[]} */
   bullish: [],
+  /** @type {import('./types').SignalResult[]} */
   bearish: [],
   neutralCount: 0,
   failedCount: 0,
   universeSize: 0,
   lookbackDays: 5,
+  /** @type {string | null} */
   sessionDate: null,
+  /** @type {string | null} */
   lastScanAt: null,
+  /** @type {string | null} */
   nextScanAt: null,
+  /** @type {import('./types').DataSource | null} */
   dataSource: null,
+  /** @type {string | null} */
   scanError: null,
+  /** @type {string | null} */
   selectedSymbol: null,
 
   setWsStatus: (wsStatus) => set({ wsStatus }),
 
+  /** @param {ScreenerSnapshot} s */
   setSnapshot: (s) => {
     // Ignore stale snapshots (e.g. REST response arriving after a newer WS push).
     const current = get().lastScanAt
@@ -60,7 +50,9 @@ export const useScreenerStore = create<ScreenerState>()((set, get) => ({
     })
   },
 
+  /** @param {string | null} scanError */
   setScanError: (scanError) => set({ scanError }),
 
+  /** @param {string} selectedSymbol */
   selectSymbol: (selectedSymbol) => set({ selectedSymbol }),
 }))

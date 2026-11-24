@@ -1,8 +1,7 @@
 import { formatDate, formatTime } from '../format'
 import { useScreenerStore } from '../store'
-import type { WsStatus } from '../types'
 
-const STATUS_STYLE: Record<WsStatus, { dot: string; label: string }> = {
+const STATUS_STYLE = {
   open: { dot: 'bg-emerald-400', label: 'Live' },
   connecting: { dot: 'bg-amber-400 animate-pulse', label: 'Connecting…' },
   closed: { dot: 'bg-rose-500', label: 'Disconnected – retrying' },

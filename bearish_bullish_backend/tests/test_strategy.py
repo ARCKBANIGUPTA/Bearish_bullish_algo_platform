@@ -94,7 +94,7 @@ def test_candles_to_frame_parses_iso_and_epoch_and_drops_bad_rows():
     rows = [
         ["2026-11-13T00:00:00", 10, 12, 9, 11, 100, None],
         [1763251200, 11, 13, 10, 12, 200],            # epoch seconds -> 2025-11-16 IST
-        ["2026-11-12T00:00:00", None, 12, 9, 11, 100],  # missing open -> dropped
+        ["2026-11-12T00:00:00", 9, 12, None, 11, 100],  # missing low -> dropped
         ["garbage", 1, 2, 3, 4, 5],                    # bad timestamp -> dropped
         ["2026-11-13T00:00:00", 10, 14, 9, 13, 150],   # duplicate date -> keep last
     ]
@@ -103,6 +103,21 @@ def test_candles_to_frame_parses_iso_and_epoch_and_drops_bad_rows():
     assert len(df) == 2
     assert df["date"].is_monotonic_increasing
     assert df[df["date"] == date(2026, 11, 13)]["high"].iloc[0] == 14
+
+
+def test_candles_to_frame_fills_missing_open_like_groww_daily():
+    # Real Groww 1-day shape (Nov 2026): [iso_ts, None, high, low, close, volume, None]
+    rows = [
+        ["2026-11-10T00:00:00", None, 105.0, 95.0, 100.0, 1000, None],
+        ["2026-11-11T00:00:00", None, 104.0, 99.0, 103.0, 1000, None],  # prev close 100 in range
+        ["2026-11-12T00:00:00", None, 112.0, 108.0, 110.0, 1000, None],  # gap up: 103 -> clamp to low 108
+        ["2026-11-13T00:00:00", 111.0, 113.0, 107.0, 108.0, 1000, None],  # real open kept
+    ]
+    df = candles_to_frame(rows)
+    assert len(df) == 4
+    assert df["open"].tolist() == [100.0, 100.0, 108.0, 111.0]
+    assert df["open"].notna().all()
+    assert ((df["open"] >= df["low"]) & (df["open"] <= df["high"])).all()
 
 
 def test_heuristic_session_date():

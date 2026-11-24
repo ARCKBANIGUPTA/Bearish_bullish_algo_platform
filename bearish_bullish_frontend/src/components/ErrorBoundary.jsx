@@ -1,21 +1,14 @@
-import { Component, type ErrorInfo, type ReactNode } from 'react'
+import { Component } from 'react'
 
-interface Props {
-  children: ReactNode
-}
+/** @extends {Component<{ children: import('react').ReactNode }, { error: Error | null }>} */
+export class ErrorBoundary extends Component {
+  state = { error: null }
 
-interface State {
-  error: Error | null
-}
-
-export class ErrorBoundary extends Component<Props, State> {
-  state: State = { error: null }
-
-  static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error) {
     return { error }
   }
 
-  componentDidCatch(error: Error, info: ErrorInfo): void {
+  componentDidCatch(error, info) {
     console.error('UI error', error, info.componentStack)
   }
 

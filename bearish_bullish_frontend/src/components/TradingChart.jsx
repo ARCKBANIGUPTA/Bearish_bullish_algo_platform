@@ -4,17 +4,11 @@ import {
   CrosshairMode,
   LineStyle,
   createChart,
-  type CandlestickData,
-  type IChartApi,
-  type IPriceLine,
-  type ISeriesApi,
-  type Time,
 } from 'lightweight-charts'
 import { useEffect, useRef, useState } from 'react'
 import { fetchCandles, isAbortError } from '../services/api'
 import { formatDate, formatPct, formatPrice } from '../format'
 import { useScreenerStore } from '../store'
-import type { CandleResponse, Signal } from '../types'
 
 const COLORS = {
   bg: '#020617',
@@ -25,30 +19,31 @@ const COLORS = {
   ltp: '#e2e8f0',
 }
 
-const SIGNAL_BADGE: Record<Signal, string> = {
+const SIGNAL_BADGE = {
   BULLISH: 'bg-emerald-500/20 text-emerald-300',
   BEARISH: 'bg-rose-500/20 text-rose-300',
   NEUTRAL: 'bg-slate-700 text-slate-300',
 }
 
-interface FetchState {
-  key: string
-  data?: CandleResponse
-  error?: string
-}
+/** @typedef {{ key: string, data?: import('../types').CandleResponse, error?: string }} FetchState */
 
 export function TradingChart() {
   const symbol = useScreenerStore((s) => s.selectedSymbol)
   const lastScanAt = useScreenerStore((s) => s.lastScanAt)
 
-  const containerRef = useRef<HTMLDivElement>(null)
-  const chartRef = useRef<IChartApi | null>(null)
-  const seriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null)
-  const priceLinesRef = useRef<IPriceLine[]>([])
-  const fittedSymbolRef = useRef<string | null>(null)
+  /** @type {import('react').RefObject<HTMLDivElement | null>} */
+  const containerRef = useRef(null)
+  /** @type {import('react').RefObject<import('lightweight-charts').IChartApi | null>} */
+  const chartRef = useRef(null)
+  /** @type {import('react').RefObject<import('lightweight-charts').ISeriesApi<'Candlestick'> | null>} */
+  const seriesRef = useRef(null)
+  /** @type {import('react').RefObject<import('lightweight-charts').IPriceLine[]>} */
+  const priceLinesRef = useRef([])
+  /** @type {import('react').RefObject<string | null>} */
+  const fittedSymbolRef = useRef(null)
 
   const [retry, setRetry] = useState(0)
-  const [state, setState] = useState<FetchState>({ key: '' })
+  const [state, setState] = useState(/** @type {FetchState} */ ({ key: '' }))
 
   // Re-fetch on symbol change, on every new scan (keeps today's candle live) and on retry.
   const requestKey = symbol ? `${symbol}|${lastScanAt ?? ''}|${retry}` : ''
@@ -91,7 +86,7 @@ export function TradingChart() {
     const controller = new AbortController()
     fetchCandles(symbol, controller.signal)
       .then((res) => setState({ key, data: res }))
-      .catch((err: unknown) => {
+      .catch((err) => {
         if (isAbortError(err)) return
         setState({ key, error: err instanceof Error ? err.message : 'Failed to load candles' })
       })
@@ -112,14 +107,9 @@ export function TradingChart() {
       return
     }
 
-    const bars: CandlestickData<Time>[] = data.candles.map((c) => ({
-      time: c.time as Time,
-      open: c.open,
-      high: c.high,
-      low: c.low,
-      close: c.close,
-    }))
-    series.setData(bars)
+    series.setData(
+      data.candles.map((c) => ({ time: c.time, open: c.open, high: c.high, low: c.low, close: c.close })),
+    )
 
     const sig = data.signal
     if (sig) {
@@ -204,9 +194,9 @@ export function TradingChart() {
 
         {data && (
           <div className="pointer-events-none absolute left-3 top-3 z-10 flex gap-3 rounded bg-slate-900/80 px-2 py-1 text-[11px] text-slate-300">
-            <Legend color={COLORS.up} label={`${data.lookback_days}D High`} dashed />
-            <Legend color={COLORS.down} label={`${data.lookback_days}D Low`} dashed />
-            <Legend color={COLORS.ltp} label="LTP" dashed />
+            <Legend color={COLORS.up} label={`${data.lookback_days}D High`} lineStyle="dashed" />
+            <Legend color={COLORS.down} label={`${data.lookback_days}D Low`} lineStyle="dashed" />
+            <Legend color={COLORS.ltp} label="LTP" lineStyle="dotted" />
           </div>
         )}
       </div>
@@ -214,7 +204,8 @@ export function TradingChart() {
   )
 }
 
-function Overlay({ children }: { children: React.ReactNode }) {
+/** @param {{ children: import('react').ReactNode }} props */
+function Overlay({ children }) {
   return (
     <div className="absolute inset-0 z-20 flex items-center justify-center gap-2 bg-slate-950/70 text-sm text-slate-400">
       {children}
@@ -226,10 +217,11 @@ function Spinner() {
   return <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-600 border-t-slate-200" aria-hidden />
 }
 
-function Legend({ color, label, dashed }: { color: string; label: string; dashed?: boolean }) {
+/** @param {{ color: string, label: string, lineStyle: 'solid' | 'dashed' | 'dotted' }} props */
+function Legend({ color, label, lineStyle }) {
   return (
     <span className="flex items-center gap-1.5">
-      <span className="inline-block w-4 border-t-2" style={{ borderColor: color, borderStyle: dashed ? 'dashed' : 'solid' }} />
+      <span className="inline-block w-4 border-t-2" style={{ borderColor: color, borderStyle: lineStyle }} />
       {label}
     </span>
   )

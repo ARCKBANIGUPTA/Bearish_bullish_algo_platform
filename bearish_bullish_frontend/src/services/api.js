@@ -1,13 +1,13 @@
-import type { CandleResponse, ScreenerSnapshot } from '../types'
-
-const API_BASE: string = import.meta.env.VITE_API_BASE_URL ?? ''
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? ''
 const DEFAULT_TIMEOUT_MS = 15_000
 
 export class ApiError extends Error {
-  readonly status: number
-  readonly retryAfterSec: number | null
-
-  constructor(message: string, status: number, retryAfterSec: number | null = null) {
+  /**
+   * @param {string} message
+   * @param {number} status  HTTP status (0 = network/timeout)
+   * @param {number | null} [retryAfterSec]
+   */
+  constructor(message, status, retryAfterSec = null) {
     super(message)
     this.name = 'ApiError'
     this.status = status
@@ -15,13 +15,12 @@ export class ApiError extends Error {
   }
 }
 
-async function readDetail(res: Response): Promise<string> {
+/** @param {Response} res @returns {Promise<string>} */
+async function readDetail(res) {
   try {
-    const body: unknown = await res.json()
+    const body = await res.json()
     if (body && typeof body === 'object' && 'detail' in body) {
-      const detail = (body as { detail: unknown }).detail
-      if (typeof detail === 'string') return detail
-      return JSON.stringify(detail)
+      return typeof body.detail === 'string' ? body.detail : JSON.stringify(body.detail)
     }
   } catch {
     /* non-JSON error body */
@@ -29,11 +28,12 @@ async function readDetail(res: Response): Promise<string> {
   return res.statusText || `HTTP ${res.status}`
 }
 
-async function getJson<T>(path: string, signal?: AbortSignal): Promise<T> {
+/** @param {string} path @param {AbortSignal} [signal] */
+async function getJson(path, signal) {
   const timeout = AbortSignal.timeout(DEFAULT_TIMEOUT_MS)
   const combined = signal ? AbortSignal.any([signal, timeout]) : timeout
 
-  let res: Response
+  let res
   try {
     res = await fetch(`${API_BASE}${path}`, {
       headers: { Accept: 'application/json' },
@@ -51,17 +51,27 @@ async function getJson<T>(path: string, signal?: AbortSignal): Promise<T> {
     const retryAfter = res.headers.get('Retry-After')
     throw new ApiError(await readDetail(res), res.status, retryAfter ? Number(retryAfter) : null)
   }
-  return (await res.json()) as T
+  return res.json()
 }
 
-export function fetchCandles(symbol: string, signal?: AbortSignal): Promise<CandleResponse> {
-  return getJson<CandleResponse>(`/api/candles/${encodeURIComponent(symbol)}`, signal)
+/**
+ * @param {string} symbol
+ * @param {AbortSignal} [signal]
+ * @returns {Promise<import('../types').CandleResponse>}
+ */
+export function fetchCandles(symbol, signal) {
+  return getJson(`/api/candles/${encodeURIComponent(symbol)}`, signal)
 }
 
-export function fetchScreener(signal?: AbortSignal): Promise<ScreenerSnapshot> {
-  return getJson<ScreenerSnapshot>('/api/screener', signal)
+/**
+ * @param {AbortSignal} [signal]
+ * @returns {Promise<import('../types').ScreenerSnapshot>}
+ */
+export function fetchScreener(signal) {
+  return getJson('/api/screener', signal)
 }
 
-export function isAbortError(err: unknown): boolean {
+/** @param {unknown} err */
+export function isAbortError(err) {
   return err instanceof DOMException && err.name === 'AbortError'
 }

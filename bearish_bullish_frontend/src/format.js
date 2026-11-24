@@ -1,11 +1,13 @@
 const priceFmt = new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
-export const formatPrice = (n: number): string => priceFmt.format(n)
+/** @param {number} n */
+export const formatPrice = (n) => priceFmt.format(n)
 
-export const formatPct = (n: number, signed = true): string =>
-  `${signed && n > 0 ? '+' : ''}${n.toFixed(2)}%`
+/** @param {number} n @param {boolean} [signed] */
+export const formatPct = (n, signed = true) => `${signed && n > 0 ? '+' : ''}${n.toFixed(2)}%`
 
-export function formatTime(iso: string | null): string {
+/** @param {string | null} iso */
+export function formatTime(iso) {
   if (!iso) return '—'
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return '—'
@@ -16,7 +18,8 @@ export function formatTime(iso: string | null): string {
   })
 }
 
-export function formatDate(isoDate: string | null): string {
+/** @param {string | null} isoDate */
+export function formatDate(isoDate) {
   if (!isoDate) return '—'
   const d = new Date(`${isoDate}T00:00:00+05:30`)
   return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', weekday: 'short', timeZone: 'Asia/Kolkata' })

@@ -117,6 +117,9 @@ class GrowwClient:
         self._auth_lock = asyncio.Lock()
         # Live-data category: 10 req/s, 300 req/min – keep headroom on the minute window.
         self._limiter = RateLimiter([(10, 1.0), (280, 60.0)])
+        # Historical candles are throttled harder than live data and the docs give no figure.
+        # Measured Nov 2026: 10/s produced ~130 HTTP 429s per 218-symbol refresh; ~3/s is clean.
+        self._hist_limiter = RateLimiter([(3, 1.0), (170, 60.0)])
         self.authenticated = False
 
     # ---- auth
@@ -145,7 +148,8 @@ class GrowwClient:
         attempts = 4
         for attempt in range(1, attempts + 1):
             api = await self._ensure_api()
-            await self._limiter.acquire()
+            limiter = self._hist_limiter if method == "get_historical_candles" else self._limiter
+            await limiter.acquire()
             try:
                 return await asyncio.to_thread(
                     getattr(api, method), timeout=self._settings.request_timeout_sec, **kwargs
